@@ -1,10 +1,19 @@
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
 import querystring from 'query-string'
+import dotenv from 'dotenv'
 
-const user = 'oleg.harlamov@partnergroupe.com'
-const password = 'JHgr677d6'
-const apiKey = 'fs3TXHRU6j6QyE2'
+const result = dotenv.config() 
+if (result.error) {
+  throw result.error
+}
+
+
+const user = process.env.CRM_USER
+const password = process.env.CRM_PASS
+const apiKey = process.env.CRM_API_KEY
+
+
 let authToken = ''
 
 function getRandomArbitrary() {
@@ -12,7 +21,7 @@ function getRandomArbitrary() {
 }
 
 const request = axios.create({
-    baseURL: 'https://my.globalmaxis.com/api/v_2/crm/',
+    baseURL: `https://${process.env.CRM_URL}/api/v_2/crm/`,
     headers: {
         "accept": "application/json, text/plain, */*",
         "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
