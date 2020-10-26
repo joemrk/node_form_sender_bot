@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer'
 
-export const RebootPuppeteer = async (targetPage, testEmail) => {
+export const RebootPuppeteer = async (domainOptions) => {
 
   const browser = await puppeteer.launch({
     // headless: false
@@ -9,24 +9,17 @@ export const RebootPuppeteer = async (targetPage, testEmail) => {
   const page = await browser.newPage()
 
   try {
-    await page.goto(`http://${targetPage}`, {
+    await page.goto(`http://${domainOptions.domain}`, {
       waitUntil: 'networkidle2'
     })
     await page.waitForSelector('body')
 
-    await page.click('input[name=firstname]')
-    await page.keyboard.type('test')
+    for await(let domain of domainOptions.form.fields) {
+      await page.click(domain.selector)
+      await page.keyboard.type(domain.value)
+    }
 
-    await page.click('input[name=lastname]')
-    await page.keyboard.type('test')
-
-    await page.click('input[name=phone_number]')
-    await page.keyboard.type('111111')
-
-    await page.click('input[name=email]')
-    await page.keyboard.type(testEmail)
-
-    await page.click('*[type=submit]')
+    await page.click(domainOptions.form.submit)
     await page.waitForNavigation()
 
     await browser.close()

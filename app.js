@@ -1,28 +1,33 @@
 import { GetClientsList } from './parser.js'
 import { RebootPuppeteer } from './puppeteer.js'
-
+import Telegraf from 'telegraf'
+import {useEnv} from './useEnv.js'
 
 (async () => {
+	useEnv()
 
-	const domains = [
-		'maximaf1xifer.pl',
-		'maxmalixifxer.pl',
-		'maxxifmizer.pl'
-	]
+	const bot = new Telegraf(process.env.BOT_TOKEN)
+	bot.start((ctx) => ctx.reply('Paste domain list with separator "\\n"'))
+	bot.help((ctx) => ctx.reply('Paste domain list with separator "\\n"'))
+	bot.on('text', async (ctx) => {
+		ctx.reply('Process...')
 
-	const domainsAdvanced = genDomainEmails(domains)
+		const domains = ctx.update.message.text.split('\n')
 
-	const checkFormSubmitResult = await Promise.all(domainsAdvanced.map(d => checkFormSubmit(d)))
-	const checkFullResult = await checkCrm(checkFormSubmitResult)
+		const domainsAdvanced = wrapDomains(domains)
+		const checkFormSubmitResult = await Promise.all(domainsAdvanced.map(d => checkFormSubmit(d)))
+		const checkFullResult = await checkCrm(checkFormSubmitResult)
 
-	checkFullResult.forEach(r => {
-		if (r.form && r.crm) console.log(r.domain, true);
-		else console.log(r.domain, r.message)
+		const responseMessage = checkFullResult.map(r => {
+			if (r.canSubmit && r.crm) return `${r.domain} 👍`
+			else return `${r.domain} 😢 ${r.message}`
+		})
+		
+		ctx.reply(responseMessage.join('\n'))
 	})
-	
 
-}
-)()
+	bot.launch()
+})()
 
 
 
@@ -32,24 +37,47 @@ async function checkCrm(domainAdvanced) {
 	if (crmResult.length > 0) {
 		return domainAdvanced.map(d => {
 			if (crmResult.some(l => {
-				if (l.email === d.email) return true
+				if (l.email === d.form.fields[3].value) return true
 				else return false
 			})) return { ...d, crm: true }
-			else return { ...d, messages:`${d.messages}; Lead not exist` }
+			else return { ...d, messages: `${d.messages}; Lead not exist` }
 		})
 	}
 }
 
 async function checkFormSubmit(domainAdvanced) {
-	const puppeteer = await RebootPuppeteer(domainAdvanced.domain, domainAdvanced.email)
+	const puppeteer = await RebootPuppeteer(domainAdvanced)
 
-	if (puppeteer.includes('thanks.php')) return { ...domainAdvanced, form: true }
-	else if (!puppeteer) return { ...domainAdvanced, puppeteerResult: 'Puppeteer have error' }
+	if (!puppeteer) return { ...domainAdvanced, message: `${domainAdvanced.message}; Puppeteer have error` }
+	else if (puppeteer.includes('thanks.php')) return { ...domainAdvanced, canSubmit: true }
 }
 
-
-function genDomainEmails(domains) {
-	return domains.map(d => { return { domain: d, email: `${genRandomString(7)}@gmail.com`, messages: '', form: false, crm: false } })
+function wrapDomains(domains) {
+	return domains.map(d => {
+		return {
+			domain: d,
+			message: '',
+			canSubmit: false,
+			crm: false,
+			form: {
+				fields: [{
+					selector: 'input[name=firstname]',
+					value: 'test'
+				},
+				{
+					selector: 'input[name=lastname]',
+					value: 'test'
+				}, {
+					selector: 'input[name=phone_number]',
+					value: '11111111'
+				}, {
+					selector: 'input[name=email]',
+					value: `${genRandomString(7)}@gmail.com`
+				}],
+				submit: '*[type=submit]'
+			}
+		}
+	})
 }
 
 function genRandomString(n) {

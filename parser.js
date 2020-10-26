@@ -1,13 +1,9 @@
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
 import querystring from 'query-string'
-import dotenv from 'dotenv'
+import {useEnv} from './useEnv.js'
 
-const result = dotenv.config() 
-if (result.error) {
-  throw result.error
-}
-
+useEnv()
 
 const user = process.env.CRM_USER
 const password = process.env.CRM_PASS
