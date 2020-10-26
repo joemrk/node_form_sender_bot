@@ -20,7 +20,7 @@ import {useEnv} from './useEnv.js'
 
 		const responseMessage = checkFullResult.map(r => {
 			if (r.canSubmit && r.crm) return `${r.domain} 👍`
-			else return `${r.domain} 😢 ${r.message}`
+			else return `${r.domain} 😢 ${r.message.join('\n')}`
 		})
 		
 		ctx.reply(responseMessage.join('\n'))
@@ -32,6 +32,7 @@ import {useEnv} from './useEnv.js'
 
 
 async function checkCrm(domainAdvanced) {
+	
 	const limit = Math.floor(domainAdvanced.length + (domainAdvanced.length / 2))
 	const crmResult = await GetClientsList({ limit: limit })
 	if (crmResult.length > 0) {
@@ -40,7 +41,7 @@ async function checkCrm(domainAdvanced) {
 				if (l.email === d.form.fields[3].value) return true
 				else return false
 			})) return { ...d, crm: true }
-			else return { ...d, messages: `${d.messages}; Lead not exist` }
+			else return {...d, message: [...d.message, 'Lead not exist']}
 		})
 	}
 }
@@ -48,15 +49,16 @@ async function checkCrm(domainAdvanced) {
 async function checkFormSubmit(domainAdvanced) {
 	const puppeteer = await RebootPuppeteer(domainAdvanced)
 
-	if (!puppeteer) return { ...domainAdvanced, message: `${domainAdvanced.message}; Puppeteer have error` }
-	else if (puppeteer.includes('thanks.php')) return { ...domainAdvanced, canSubmit: true }
+	if (puppeteer) return { ...domainAdvanced, canSubmit: true }
+	else if(puppeteer instanceof Error) return { ...domainAdvanced, message: [...domainAdvanced.message, puppeteer.message] }
+	else return { ...domainAdvanced, message: [...domainAdvanced.message, 'Puppeteer have error'] }
 }
 
 function wrapDomains(domains) {
 	return domains.map(d => {
 		return {
 			domain: d,
-			message: '',
+			message: [],
 			canSubmit: false,
 			crm: false,
 			form: {
