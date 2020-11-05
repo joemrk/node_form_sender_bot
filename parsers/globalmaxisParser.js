@@ -1,13 +1,11 @@
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
 import querystring from 'query-string'
-import {useEnv} from './useEnv.js'
+import { GLOBALMAXIS_CRM_API_KEY, GLOBALMAXIS_CRM_PASS, GLOBALMAXIS_CRM_USER, GLOBALMAXIS_CRM_URL } from '../consts.js'
 
-useEnv()
-
-const user = process.env.CRM_USER
-const password = process.env.CRM_PASS
-const apiKey = process.env.CRM_API_KEY
+const user = GLOBALMAXIS_CRM_USER
+const password = GLOBALMAXIS_CRM_PASS
+const apiKey = GLOBALMAXIS_CRM_API_KEY
 
 
 let authToken = ''
@@ -17,15 +15,14 @@ function getRandomArbitrary() {
 }
 
 const request = axios.create({
-    baseURL: `https://${process.env.CRM_URL}/api/v_2/crm/`,
+    baseURL: `${GLOBALMAXIS_CRM_URL}/api/v_2/crm/`,
     headers: {
         "accept": "application/json, text/plain, */*",
         "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-site"
-    },
-
+    }
 })
 
 const Auth = async () => {
@@ -88,7 +85,8 @@ export const GetClientsList = async (options = {}) => {
             const stringParams = querystring.stringify(requestData)
             const data = await request.get(`/GetClientsList?${stringParams}`).then(res => res.data)
             if (data.result === 'success') {
-                return JSON.parse(data.values)
+                const parsedData = JSON.parse(data.values)
+                return parsedData.map(l => {return l.email})
             }
         }
     } catch (error) {
@@ -97,7 +95,10 @@ export const GetClientsList = async (options = {}) => {
 }
 
 
-
+// (async ()=>{
+//     console.log(await GetClientsList({limit: 10}));
+    
+// })()
 
 //offers
 // id:1 - 'Общее Дело'
